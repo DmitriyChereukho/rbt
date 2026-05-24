@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <cstdint>
+#include <cstddef>
 #include <string>
 
 using Key = uint32_t; //!< тип ключей в дереве

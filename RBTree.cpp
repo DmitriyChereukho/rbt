@@ -319,114 +319,112 @@ void BinarySearchTree::RBEraseFixup(Node *x) {
 }
 
 void BinarySearchTree::erase(const Key &key) {
-    // Find node to delete (first/leftmost with this key)
-    Node *z = _root;
-    while (z != nullptr) {
-        if (key < z->keyValuePair.first) {
-            z = z->left;
-        } else if (key > z->keyValuePair.first) {
-            z = z->right;
-        } else {
-            // Found one — check for leftmost with same key
-            Node *leftmost = z;
-            while (leftmost->left != nullptr &&
-                   leftmost->left->keyValuePair.first == key) {
-                leftmost = leftmost->left;
-            }
-            z = leftmost;
-            break;
-        }
-    }
-
-    if (z == nullptr) return;
-    _size--;
-
-    Node *y = z;
-    bool y_original_color = y->color;
-    Node *x = nullptr;
-
-    // Save double-black tracking info in case x ends up nullptr
-    _efParent = nullptr;
-    _efIsLeft = false;
-
-    if (z->left == nullptr) {
-        x = z->right;
-        if (x == nullptr) {
-            _efParent = z->parent;
-            _efIsLeft = (z->parent != nullptr && z == z->parent->left);
-        }
-        // Transplant z with z->right
-        if (z->parent == nullptr) {
-            _root = z->right;
-        } else if (z == z->parent->left) {
-            z->parent->left = z->right;
-        } else {
-            z->parent->right = z->right;
-        }
-        if (z->right != nullptr) {
-            z->right->parent = z->parent;
-        }
-    } else if (z->right == nullptr) {
-        x = z->left;
-        if (x == nullptr) {
-            _efParent = z->parent;
-            _efIsLeft = (z->parent != nullptr && z == z->parent->left);
-        }
-        // Transplant z with z->left
-        if (z->parent == nullptr) {
-            _root = z->left;
-        } else if (z == z->parent->left) {
-            z->parent->left = z->left;
-        } else {
-            z->parent->right = z->left;
-        }
-        z->left->parent = z->parent;
-    } else {
-        y = treeMin(z->right);
-        y_original_color = y->color;
-        x = y->right;
-
-        if (x == nullptr) {
-            _efParent = (y->parent != z) ? y->parent : y;
-            _efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
-        }
-
-        if (y->parent != z) {
-            // Transplant y with y->right
-            if (y == y->parent->left) {
-                y->parent->left = y->right;
+    while (true) {
+        // Find node to delete (first/leftmost with this key)
+        Node *z = _root;
+        while (z != nullptr) {
+            if (key < z->keyValuePair.first) {
+                z = z->left;
+            } else if (key > z->keyValuePair.first) {
+                z = z->right;
             } else {
-                y->parent->right = y->right;
-            }
-            if (y->right != nullptr) {
-                y->right->parent = y->parent;
-            }
-            y->right = z->right;
-            if (y->right != nullptr) {
-                y->right->parent = y;
+                // Found one — check for leftmost with same key
+                Node *leftmost = z;
+                while (leftmost->left != nullptr &&
+                       leftmost->left->keyValuePair.first == key) {
+                    leftmost = leftmost->left;
+                }
+                z = leftmost;
+                break;
             }
         }
 
-        // Transplant z with y
-        if (z->parent == nullptr) {
-            _root = y;
-        } else if (z == z->parent->left) {
-            z->parent->left = y;
+        if (z == nullptr) return;
+        _size--;
+
+        Node *y = z;
+        bool y_original_color = y->color;
+        Node *x = nullptr;
+
+        // Save double-black tracking info in case x ends up nullptr
+        _efParent = nullptr;
+        _efIsLeft = false;
+
+        if (z->left == nullptr) {
+            x = z->right;
+            if (x == nullptr) {
+                _efParent = z->parent;
+                _efIsLeft = (z->parent != nullptr && z == z->parent->left);
+            }
+            // Transplant z with z->right
+            if (z->parent == nullptr) {
+                _root = z->right;
+            } else if (z == z->parent->left) {
+                z->parent->left = z->right;
+            } else {
+                z->parent->right = z->right;
+            }
+            if (z->right != nullptr) {
+                z->right->parent = z->parent;
+            }
+        } else if (z->right == nullptr) {
+            x = z->left;
+            // Transplant z with z->left
+            if (z->parent == nullptr) {
+                _root = z->left;
+            } else if (z == z->parent->left) {
+                z->parent->left = z->left;
+            } else {
+                z->parent->right = z->left;
+            }
+            z->left->parent = z->parent;
         } else {
-            z->parent->right = y;
-        }
-        y->parent = z->parent;
-        y->left = z->left;
-        if (y->left != nullptr) {
-            y->left->parent = y;
-        }
-        y->color = z->color;
-    }
+            y = treeMin(z->right);
+            y_original_color = y->color;
+            x = y->right;
 
-    delete z;
+            if (x == nullptr) {
+                _efParent = (y->parent != z) ? y->parent : y;
+                _efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
+            }
 
-    if (y_original_color == BLACK) {
-        RBEraseFixup(x);
+            if (y->parent != z) {
+                // Transplant y with y->right
+                if (y == y->parent->left) {
+                    y->parent->left = y->right;
+                } else {
+                    y->parent->right = y->right;
+                }
+                if (y->right != nullptr) {
+                    y->right->parent = y->parent;
+                }
+                y->right = z->right;
+                if (y->right != nullptr) {
+                    y->right->parent = y;
+                }
+            }
+
+            // Transplant z with y
+            if (z->parent == nullptr) {
+                _root = y;
+            } else if (z == z->parent->left) {
+                z->parent->left = y;
+            } else {
+                z->parent->right = y;
+            }
+            y->parent = z->parent;
+            y->left = z->left;
+            if (y->left != nullptr) {
+                y->left->parent = y;
+            }
+            y->color = z->color;
+        }
+
+        delete z;
+
+        if (y_original_color == BLACK) {
+            RBEraseFixup(x);
+        }
     }
 }
 
