@@ -6,6 +6,10 @@
 constexpr bool RED = true;
 constexpr bool BLACK = false;
 
+// Used by Iterator::operator-- to find tree root when _node == nullptr.
+// Set by every tree method that creates an iterator.
+static thread_local BinarySearchTree *g_currentInstance = nullptr;
+
 // ============================================================
 // Node methods
 // ============================================================
@@ -484,6 +488,7 @@ BinarySearchTree::Node *BinarySearchTree::TreeSuccessor(Node *node) const {
 // ============================================================
 
 BinarySearchTree::Iterator BinarySearchTree::find(const Key &key) {
+    g_currentInstance = this;
     Node *cur = _root;
     Node *result = nullptr;
     while (cur != nullptr) {
@@ -496,10 +501,11 @@ BinarySearchTree::Iterator BinarySearchTree::find(const Key &key) {
             cur = cur->left;
         }
     }
-    return Iterator(result, this);
+    return Iterator(result);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::find(const Key &key) const {
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
     const Node *cur = _root;
     const Node *result = nullptr;
     while (cur != nullptr) {
@@ -512,10 +518,11 @@ BinarySearchTree::ConstIterator BinarySearchTree::find(const Key &key) const {
             cur = cur->left;
         }
     }
-    return ConstIterator(result, this);
+    return ConstIterator(result);
 }
 
 BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
+    g_currentInstance = this;
     Node *cur = _root;
     Node *result = nullptr;
     while (cur != nullptr) {
@@ -528,7 +535,7 @@ BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
             cur = cur->right;
         }
     }
-    return Iterator(result, this);
+    return Iterator(result);
 }
 
 // ============================================================
@@ -537,6 +544,7 @@ BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
 
 std::pair<BinarySearchTree::Iterator, BinarySearchTree::Iterator>
 BinarySearchTree::equalRange(const Key &key) {
+    g_currentInstance = this;
     Iterator first = find(key);
     if (first == end()) {
         return {first, first};
@@ -551,11 +559,12 @@ BinarySearchTree::equalRange(const Key &key) {
             cur = cur->right;
         }
     }
-    return {first, Iterator(upper, this)};
+    return {first, Iterator(upper)};
 }
 
 std::pair<BinarySearchTree::ConstIterator, BinarySearchTree::ConstIterator>
 BinarySearchTree::equalRange(const Key &key) const {
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
     ConstIterator first = find(key);
     if (first == cend()) {
         return {first, first};
@@ -570,7 +579,7 @@ BinarySearchTree::equalRange(const Key &key) const {
             cur = cur->right;
         }
     }
-    return {first, ConstIterator(upper, this)};
+    return {first, ConstIterator(upper)};
 }
 
 // ============================================================
@@ -578,11 +587,13 @@ BinarySearchTree::equalRange(const Key &key) const {
 // ============================================================
 
 BinarySearchTree::ConstIterator BinarySearchTree::min() const {
-    return ConstIterator(treeMin(_root), this);
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
+    return ConstIterator(treeMin(_root));
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::max() const {
-    return ConstIterator(treeMax(_root), this);
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
+    return ConstIterator(treeMax(_root));
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::min(const Key &key) const {
@@ -590,6 +601,7 @@ BinarySearchTree::ConstIterator BinarySearchTree::min(const Key &key) const {
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
     const Node *cur = _root;
     const Node *result = nullptr;
     while (cur != nullptr) {
@@ -602,7 +614,7 @@ BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
             cur = cur->right;
         }
     }
-    return ConstIterator(result, this);
+    return ConstIterator(result);
 }
 
 // ============================================================
@@ -610,10 +622,7 @@ BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
 // ============================================================
 
 BinarySearchTree::Iterator::Iterator(Node *node)
-    : _node(node), _tree(nullptr) {}
-
-BinarySearchTree::Iterator::Iterator(Node *node, const BinarySearchTree *tree)
-    : _node(node), _tree(tree) {}
+    : _node(node) {}
 
 std::pair<Key, Value> &BinarySearchTree::Iterator::operator*() {
     return _node->keyValuePair;
@@ -654,8 +663,8 @@ BinarySearchTree::Iterator BinarySearchTree::Iterator::operator++(int) {
 
 BinarySearchTree::Iterator BinarySearchTree::Iterator::operator--() {
     if (_node == nullptr) {
-        if (_tree != nullptr) {
-            _node = treeMax(_tree->_root);
+        if (g_currentInstance != nullptr && g_currentInstance->_root != nullptr) {
+            _node = treeMax(g_currentInstance->_root);
         }
         return *this;
     }
@@ -689,10 +698,7 @@ bool BinarySearchTree::Iterator::operator!=(const Iterator &other) const {
 // --- ConstIterator ---
 
 BinarySearchTree::ConstIterator::ConstIterator(const Node *node)
-    : _node(node), _tree(nullptr) {}
-
-BinarySearchTree::ConstIterator::ConstIterator(const Node *node, const BinarySearchTree *tree)
-    : _node(node), _tree(tree) {}
+    : _node(node) {}
 
 const std::pair<Key, Value> &BinarySearchTree::ConstIterator::operator*() const {
     return _node->keyValuePair;
@@ -725,8 +731,8 @@ BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator++(int)
 
 BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator--() {
     if (_node == nullptr) {
-        if (_tree != nullptr) {
-            _node = treeMax(_tree->_root);
+        if (g_currentInstance != nullptr && g_currentInstance->_root != nullptr) {
+            _node = treeMax(g_currentInstance->_root);
         }
         return *this;
     }
@@ -762,19 +768,23 @@ bool BinarySearchTree::ConstIterator::operator!=(const ConstIterator &other) con
 // ============================================================
 
 BinarySearchTree::Iterator BinarySearchTree::begin() {
-    return Iterator(treeMin(_root), this);
+    g_currentInstance = this;
+    return Iterator(treeMin(_root));
 }
 
 BinarySearchTree::Iterator BinarySearchTree::end() {
-    return Iterator(nullptr, this);
+    g_currentInstance = this;
+    return Iterator(nullptr);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::cbegin() const {
-    return ConstIterator(treeMin(_root), this);
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
+    return ConstIterator(treeMin(_root));
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::cend() const {
-    return ConstIterator(nullptr, this);
+    g_currentInstance = const_cast<BinarySearchTree *>(this);
+    return ConstIterator(nullptr);
 }
 
 // ============================================================

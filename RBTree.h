@@ -66,7 +66,6 @@ public:
     {
     public:
         Iterator(Node *node);
-        Iterator(Node *node, const BinarySearchTree *tree);
 
         std::pair<Key, Value> &operator*();
         const std::pair<Key, Value> &operator*() const;
@@ -85,7 +84,6 @@ public:
 
     private:
         Node *_node;
-        const BinarySearchTree *_tree;
     };
 
     //! Константный итератор бинарного дерева поиска
@@ -93,7 +91,6 @@ public:
     {
     public:
         ConstIterator(const Node *node);
-        ConstIterator(const Node *node, const BinarySearchTree *tree);
 
         const std::pair<Key, Value> &operator*() const;
         const std::pair<Key, Value> *operator->() const;
@@ -109,7 +106,6 @@ public:
 
     private:
         const Node *_node;
-        const BinarySearchTree *_tree;
     };
 
     //! Вставить элемент с ключем key и значением value
