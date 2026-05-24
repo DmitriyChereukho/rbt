@@ -10,6 +10,11 @@ constexpr bool BLACK = false;
 // Set by every tree method that creates an iterator.
 static thread_local BinarySearchTree *g_currentInstance = nullptr;
 
+// Used by RBEraseFixup to track double-black position when x is nullptr.
+// void* because Node is private; cast back to Node* inside member functions.
+static thread_local void *g_efParentPtr = nullptr;
+static thread_local bool g_efIsLeft = false;
+
 // ============================================================
 // Node methods
 // ============================================================
@@ -284,8 +289,8 @@ void BinarySearchTree::RBEraseFixup(Node *x) {
             parent = x->parent;
             isLeft = (x == parent->left);
         } else {
-            parent = _efParent;
-            isLeft = _efIsLeft;
+            parent = static_cast<Node *>(g_efParentPtr);
+            isLeft = g_efIsLeft;
         }
 
         if (parent == nullptr) break;
@@ -384,14 +389,14 @@ void BinarySearchTree::erase(const Key &key) {
         Node *x = nullptr;
 
         // Save double-black tracking info in case x ends up nullptr
-        _efParent = nullptr;
-        _efIsLeft = false;
+        g_efParentPtr = nullptr;
+        g_efIsLeft = false;
 
         if (z->left == nullptr) {
             x = z->right;
             if (x == nullptr) {
-                _efParent = z->parent;
-                _efIsLeft = (z->parent != nullptr && z == z->parent->left);
+                g_efParentPtr = z->parent;
+                g_efIsLeft = (z->parent != nullptr && z == z->parent->left);
             }
             // Transplant z with z->right
             if (z->parent == nullptr) {
@@ -421,8 +426,8 @@ void BinarySearchTree::erase(const Key &key) {
             x = y->right;
 
             if (x == nullptr) {
-                _efParent = (y->parent != z) ? y->parent : y;
-                _efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
+                g_efParentPtr = (y->parent != z) ? y->parent : y;
+                g_efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
             }
 
             if (y->parent != z) {

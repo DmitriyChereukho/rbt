@@ -178,7 +178,4 @@ private:
     //! Максимальный узел в поддереве
     static Node *treeMax(Node *node);
 
-    // Вспомогательные поля для RBEraseFixup при x == nullptr
-    Node *_efParent = nullptr;
-    bool _efIsLeft = false;
 };
