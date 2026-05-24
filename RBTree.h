@@ -65,6 +65,7 @@ public:
     class Iterator
     {
     public:
+        Iterator(Node *node);
         Iterator(Node *node, const BinarySearchTree *tree);
 
         std::pair<Key, Value> &operator*();
@@ -91,6 +92,7 @@ public:
     class ConstIterator
     {
     public:
+        ConstIterator(const Node *node);
         ConstIterator(const Node *node, const BinarySearchTree *tree);
 
         const std::pair<Key, Value> &operator*() const;

@@ -609,6 +609,9 @@ BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
 // Tree: Iterators
 // ============================================================
 
+BinarySearchTree::Iterator::Iterator(Node *node)
+    : _node(node), _tree(nullptr) {}
+
 BinarySearchTree::Iterator::Iterator(Node *node, const BinarySearchTree *tree)
     : _node(node), _tree(tree) {}
 
@@ -651,7 +654,9 @@ BinarySearchTree::Iterator BinarySearchTree::Iterator::operator++(int) {
 
 BinarySearchTree::Iterator BinarySearchTree::Iterator::operator--() {
     if (_node == nullptr) {
-        _node = treeMax(_tree->_root);
+        if (_tree != nullptr) {
+            _node = treeMax(_tree->_root);
+        }
         return *this;
     }
     if (_node->left != nullptr) {
@@ -682,6 +687,9 @@ bool BinarySearchTree::Iterator::operator!=(const Iterator &other) const {
 }
 
 // --- ConstIterator ---
+
+BinarySearchTree::ConstIterator::ConstIterator(const Node *node)
+    : _node(node), _tree(nullptr) {}
 
 BinarySearchTree::ConstIterator::ConstIterator(const Node *node, const BinarySearchTree *tree)
     : _node(node), _tree(tree) {}
@@ -717,7 +725,9 @@ BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator++(int)
 
 BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator--() {
     if (_node == nullptr) {
-        _node = treeMax(_tree->_root);
+        if (_tree != nullptr) {
+            _node = treeMax(_tree->_root);
+        }
         return *this;
     }
     if (_node->left != nullptr) {
