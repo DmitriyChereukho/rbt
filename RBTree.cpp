@@ -8,9 +8,6 @@ constexpr bool BLACK = false;
 
 static thread_local BinarySearchTree *g_currentInstance = nullptr;
 
-static thread_local void *g_efParentPtr = nullptr;
-static thread_local bool g_efIsLeft = false;
-
 BinarySearchTree::Node::Node(Key key, Value value,
                               Node *parent, Node *left, Node *right)
     : keyValuePair(key, value), parent(parent), left(left), right(right), color(RED) {}
@@ -256,7 +253,7 @@ void BinarySearchTree::RBInsertFixup(Node *z) {
     _root->color = BLACK;
 }
 
-void BinarySearchTree::RBEraseFixup(Node *x) {
+void BinarySearchTree::RBEraseFixup(Node *x, Node *efParent, bool efIsLeft) {
     while (x != _root && (x == nullptr || x->color == BLACK)) {
         Node *parent;
         bool isLeft;
@@ -265,8 +262,8 @@ void BinarySearchTree::RBEraseFixup(Node *x) {
             parent = x->parent;
             isLeft = (x == parent->left);
         } else {
-            parent = static_cast<Node *>(g_efParentPtr);
-            isLeft = g_efIsLeft;
+            parent = efParent;
+            isLeft = efIsLeft;
         }
 
         if (parent == nullptr) break;
@@ -363,15 +360,14 @@ void BinarySearchTree::erase(const Key &key) {
         Node *y = z;
         bool y_original_color = y->color;
         Node *x = nullptr;
-
-        g_efParentPtr = nullptr;
-        g_efIsLeft = false;
+        Node *efParent = nullptr;
+        bool efIsLeft = false;
 
         if (z->left == nullptr) {
             x = z->right;
             if (x == nullptr) {
-                g_efParentPtr = z->parent;
-                g_efIsLeft = (z->parent != nullptr && z == z->parent->left);
+                efParent = z->parent;
+                efIsLeft = (z->parent != nullptr && z == z->parent->left);
             }
 
             if (z->parent == nullptr) {
@@ -401,8 +397,8 @@ void BinarySearchTree::erase(const Key &key) {
             x = y->right;
 
             if (x == nullptr) {
-                g_efParentPtr = (y->parent != z) ? y->parent : y;
-                g_efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
+                efParent = (y->parent != z) ? y->parent : y;
+                efIsLeft = (y->parent != z) ? (y == y->parent->left) : false;
             }
 
             if (y->parent != z) {
@@ -439,7 +435,7 @@ void BinarySearchTree::erase(const Key &key) {
         delete z;
 
         if (y_original_color == BLACK) {
-            RBEraseFixup(x);
+            RBEraseFixup(x, efParent, efIsLeft);
         }
         validate();
     }

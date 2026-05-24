@@ -168,7 +168,7 @@ private:
     //! Балансировка после вставки узла
     void RBInsertFixup(Node *node);
     //! Балансировка после удаления узла
-    void RBEraseFixup(Node *node);
+    void RBEraseFixup(Node *node, Node *efParent, bool efIsLeft);
     //! Валидация RB-дерева (только в дебаг-режиме)
     void validate() const;
     //! Поиск преемника узла (следующий по порядку ключей)
