@@ -6,18 +6,10 @@
 constexpr bool RED = true;
 constexpr bool BLACK = false;
 
-// Used by Iterator::operator-- to find tree root when _node == nullptr.
-// Set by every tree method that creates an iterator.
 static thread_local BinarySearchTree *g_currentInstance = nullptr;
 
-// Used by RBEraseFixup to track double-black position when x is nullptr.
-// void* because Node is private; cast back to Node* inside member functions.
 static thread_local void *g_efParentPtr = nullptr;
 static thread_local bool g_efIsLeft = false;
-
-// ============================================================
-// Node methods
-// ============================================================
 
 BinarySearchTree::Node::Node(Key key, Value value,
                               Node *parent, Node *left, Node *right)
@@ -74,7 +66,7 @@ void BinarySearchTree::Node::insert(const Key &key, const Value &value) {
 }
 
 void BinarySearchTree::Node::erase(const Key &key) {
-    // Handled at tree level with fixup; this method exists for the ABI
+
     if (key < keyValuePair.first) {
         if (left != nullptr) {
             left->erase(key);
@@ -99,10 +91,6 @@ void BinarySearchTree::Node::clear() {
     }
 }
 
-// ============================================================
-// Private static helpers for tree navigation
-// ============================================================
-
 BinarySearchTree::Node *BinarySearchTree::treeMin(Node *node) {
     while (node != nullptr && node->left != nullptr) {
         node = node->left;
@@ -116,10 +104,6 @@ BinarySearchTree::Node *BinarySearchTree::treeMax(Node *node) {
     }
     return node;
 }
-
-// ============================================================
-// Tree: Rotations
-// ============================================================
 
 void BinarySearchTree::LeftRotate(Node *x) {
     Node *y = x->right;
@@ -165,10 +149,6 @@ void BinarySearchTree::RightRotate(Node *y) {
     y->parent = x;
 }
 
-// ============================================================
-// Tree: Insertion
-// ============================================================
-
 #ifndef NDEBUG
 void BinarySearchTree::validate() const {
     if (_root == nullptr) return;
@@ -202,7 +182,7 @@ void BinarySearchTree::validate() const {}
 #endif
 
 void BinarySearchTree::insert(const Key &key, const Value &value) {
-    // BST insert (iterative)
+
     Node *parent = nullptr;
     Node *cur = _root;
     while (cur != nullptr) {
@@ -236,18 +216,18 @@ void BinarySearchTree::RBInsertFixup(Node *z) {
         if (z->parent == gp->left) {
             Node *uncle = gp->right;
             if (uncle != nullptr && uncle->color == RED) {
-                // Case 1: uncle is red
+
                 z->parent->color = BLACK;
                 uncle->color = BLACK;
                 gp->color = RED;
                 z = gp;
             } else {
                 if (z == z->parent->right) {
-                    // Case 2: z is right child
+
                     z = z->parent;
                     LeftRotate(z);
                 }
-                // Case 3: z is left child
+
                 z->parent->color = BLACK;
                 gp->color = RED;
                 RightRotate(gp);
@@ -255,18 +235,18 @@ void BinarySearchTree::RBInsertFixup(Node *z) {
         } else {
             Node *uncle = gp->left;
             if (uncle != nullptr && uncle->color == RED) {
-                // Case 1: uncle is red
+
                 z->parent->color = BLACK;
                 uncle->color = BLACK;
                 gp->color = RED;
                 z = gp;
             } else {
                 if (z == z->parent->left) {
-                    // Case 2: z is left child
+
                     z = z->parent;
                     RightRotate(z);
                 }
-                // Case 3: z is right child
+
                 z->parent->color = BLACK;
                 gp->color = RED;
                 LeftRotate(gp);
@@ -275,10 +255,6 @@ void BinarySearchTree::RBInsertFixup(Node *z) {
     }
     _root->color = BLACK;
 }
-
-// ============================================================
-// Tree: Deletion
-// ============================================================
 
 void BinarySearchTree::RBEraseFixup(Node *x) {
     while (x != _root && (x == nullptr || x->color == BLACK)) {
@@ -362,7 +338,7 @@ void BinarySearchTree::RBEraseFixup(Node *x) {
 
 void BinarySearchTree::erase(const Key &key) {
     while (true) {
-        // Find node to delete (first/leftmost with this key)
+
         Node *z = _root;
         while (z != nullptr) {
             if (key < z->keyValuePair.first) {
@@ -370,7 +346,7 @@ void BinarySearchTree::erase(const Key &key) {
             } else if (key > z->keyValuePair.first) {
                 z = z->right;
             } else {
-                // Found one — check for leftmost with same key
+
                 Node *leftmost = z;
                 while (leftmost->left != nullptr &&
                        leftmost->left->keyValuePair.first == key) {
@@ -388,7 +364,6 @@ void BinarySearchTree::erase(const Key &key) {
         bool y_original_color = y->color;
         Node *x = nullptr;
 
-        // Save double-black tracking info in case x ends up nullptr
         g_efParentPtr = nullptr;
         g_efIsLeft = false;
 
@@ -398,7 +373,7 @@ void BinarySearchTree::erase(const Key &key) {
                 g_efParentPtr = z->parent;
                 g_efIsLeft = (z->parent != nullptr && z == z->parent->left);
             }
-            // Transplant z with z->right
+
             if (z->parent == nullptr) {
                 _root = z->right;
             } else if (z == z->parent->left) {
@@ -411,7 +386,7 @@ void BinarySearchTree::erase(const Key &key) {
             }
         } else if (z->right == nullptr) {
             x = z->left;
-            // Transplant z with z->left
+
             if (z->parent == nullptr) {
                 _root = z->left;
             } else if (z == z->parent->left) {
@@ -431,7 +406,7 @@ void BinarySearchTree::erase(const Key &key) {
             }
 
             if (y->parent != z) {
-                // Transplant y with y->right
+
                 if (y == y->parent->left) {
                     y->parent->left = y->right;
                 } else {
@@ -446,7 +421,6 @@ void BinarySearchTree::erase(const Key &key) {
                 }
             }
 
-            // Transplant z with y
             if (z->parent == nullptr) {
                 _root = y;
             } else if (z == z->parent->left) {
@@ -471,10 +445,6 @@ void BinarySearchTree::erase(const Key &key) {
     }
 }
 
-// ============================================================
-// Tree: TreeSuccessor
-// ============================================================
-
 BinarySearchTree::Node *BinarySearchTree::TreeSuccessor(Node *node) const {
     if (node == nullptr) return nullptr;
     if (node->right != nullptr) {
@@ -487,10 +457,6 @@ BinarySearchTree::Node *BinarySearchTree::TreeSuccessor(Node *node) const {
     }
     return parent;
 }
-
-// ============================================================
-// Tree: find / rfind
-// ============================================================
 
 BinarySearchTree::Iterator BinarySearchTree::find(const Key &key) {
     g_currentInstance = this;
@@ -543,10 +509,6 @@ BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
     return Iterator(result);
 }
 
-// ============================================================
-// Tree: equalRange
-// ============================================================
-
 std::pair<BinarySearchTree::Iterator, BinarySearchTree::Iterator>
 BinarySearchTree::equalRange(const Key &key) {
     g_currentInstance = this;
@@ -587,10 +549,6 @@ BinarySearchTree::equalRange(const Key &key) const {
     return {first, ConstIterator(upper)};
 }
 
-// ============================================================
-// Tree: min / max
-// ============================================================
-
 BinarySearchTree::ConstIterator BinarySearchTree::min() const {
     g_currentInstance = const_cast<BinarySearchTree *>(this);
     return ConstIterator(treeMin(_root));
@@ -628,10 +586,6 @@ BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
     }
     return result;
 }
-
-// ============================================================
-// Tree: Iterators
-// ============================================================
 
 BinarySearchTree::Iterator::Iterator(Node *node)
     : _node(node) {}
@@ -707,8 +661,6 @@ bool BinarySearchTree::Iterator::operator!=(const Iterator &other) const {
     return _node != other._node;
 }
 
-// --- ConstIterator ---
-
 BinarySearchTree::ConstIterator::ConstIterator(const Node *node)
     : _node(node) {}
 
@@ -775,10 +727,6 @@ bool BinarySearchTree::ConstIterator::operator!=(const ConstIterator &other) con
     return _node != other._node;
 }
 
-// ============================================================
-// Tree: begin / end / cbegin / cend
-// ============================================================
-
 BinarySearchTree::Iterator BinarySearchTree::begin() {
     g_currentInstance = this;
     return Iterator(treeMin(_root));
@@ -799,18 +747,14 @@ BinarySearchTree::ConstIterator BinarySearchTree::cend() const {
     return ConstIterator(nullptr);
 }
 
-// ============================================================
-// Tree: size / max_height / output_tree
-// ============================================================
-
 size_t BinarySearchTree::size() const {
     return _size;
 }
 
 size_t BinarySearchTree::max_height() const {
-    // Compute max height iteratively to avoid needing a free function with Node*
+
     if (_root == nullptr) return 0;
-    // Recursive lambda
+
     auto height = [](auto &&self, const Node *node) -> size_t {
         if (node == nullptr) return 0;
         return 1 + std::max(self(self, node->left), self(self, node->right));
@@ -823,10 +767,6 @@ void BinarySearchTree::output_tree() {
         _root->output_node_tree();
     }
 }
-
-// ============================================================
-// Tree: Constructors, destructor, assignment
-// ============================================================
 
 BinarySearchTree::BinarySearchTree() : _size(0), _root(nullptr) {}
 
