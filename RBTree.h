@@ -62,10 +62,10 @@ public:
 
     //! \brief Итератор бинарного дерева поиска
     //! \note Обходит дерево последовательно от узла с меньшим ключом к узлу с большим 
-    class Iterator 
+    class Iterator
     {
     public:
-        explicit Iterator(Node *node);
+        Iterator(Node *node, const BinarySearchTree *tree);
 
         std::pair<Key, Value> &operator*();
         const std::pair<Key, Value> &operator*() const;
@@ -84,13 +84,14 @@ public:
 
     private:
         Node *_node;
+        const BinarySearchTree *_tree;
     };
 
     //! Константный итератор бинарного дерева поиска
-    class ConstIterator 
+    class ConstIterator
     {
     public:
-        explicit ConstIterator(const Node *node);
+        ConstIterator(const Node *node, const BinarySearchTree *tree);
 
         const std::pair<Key, Value> &operator*() const;
         const std::pair<Key, Value> *operator->() const;
@@ -106,6 +107,7 @@ public:
 
     private:
         const Node *_node;
+        const BinarySearchTree *_tree;
     };
 
     //! Вставить элемент с ключем key и значением value
@@ -169,6 +171,8 @@ private:
     void RBInsertFixup(Node *node);
     //! Балансировка после удаления узла
     void RBEraseFixup(Node *node);
+    //! Валидация RB-дерева (только в дебаг-режиме)
+    void validate() const;
     //! Поиск преемника узла (следующий по порядку ключей)
     Node *TreeSuccessor(Node *node) const;
     //! Минимальный узел в поддереве

@@ -160,6 +160,38 @@ void BinarySearchTree::RightRotate(Node *y) {
 // Tree: Insertion
 // ============================================================
 
+#ifndef NDEBUG
+void BinarySearchTree::validate() const {
+    if (_root == nullptr) return;
+    if (_root->color != BLACK) {
+        std::cerr << "VALIDATE ERR: Root not BLACK" << std::endl;
+        std::abort();
+    }
+    auto check = [](auto &&self, const Node *node) -> size_t {
+        if (node == nullptr) return 1;
+        if (node->color == RED) {
+            if ((node->left && node->left->color == RED) ||
+                (node->right && node->right->color == RED)) {
+                std::cerr << "VALIDATE ERR: RED node key=" << node->keyValuePair.first
+                          << " has RED child" << std::endl;
+                std::abort();
+            }
+        }
+        size_t lbh = self(self, node->left);
+        size_t rbh = self(self, node->right);
+        if (lbh != rbh) {
+            std::cerr << "VALIDATE ERR: Black height mismatch at key="
+                      << node->keyValuePair.first << " — L=" << lbh << " R=" << rbh << std::endl;
+            std::abort();
+        }
+        return lbh + (node->color == BLACK ? 1 : 0);
+    };
+    check(check, _root);
+}
+#else
+void BinarySearchTree::validate() const {}
+#endif
+
 void BinarySearchTree::insert(const Key &key, const Value &value) {
     // BST insert (iterative)
     Node *parent = nullptr;
@@ -184,6 +216,7 @@ void BinarySearchTree::insert(const Key &key, const Value &value) {
 
     _size++;
     RBInsertFixup(z);
+    validate();
 }
 
 void BinarySearchTree::RBInsertFixup(Node *z) {
@@ -425,6 +458,7 @@ void BinarySearchTree::erase(const Key &key) {
         if (y_original_color == BLACK) {
             RBEraseFixup(x);
         }
+        validate();
     }
 }
 
@@ -462,7 +496,7 @@ BinarySearchTree::Iterator BinarySearchTree::find(const Key &key) {
             cur = cur->left;
         }
     }
-    return Iterator(result);
+    return Iterator(result, this);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::find(const Key &key) const {
@@ -478,7 +512,7 @@ BinarySearchTree::ConstIterator BinarySearchTree::find(const Key &key) const {
             cur = cur->left;
         }
     }
-    return ConstIterator(result);
+    return ConstIterator(result, this);
 }
 
 BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
@@ -494,7 +528,7 @@ BinarySearchTree::Iterator BinarySearchTree::rfind(const Key &key) {
             cur = cur->right;
         }
     }
-    return Iterator(result);
+    return Iterator(result, this);
 }
 
 // ============================================================
@@ -517,7 +551,7 @@ BinarySearchTree::equalRange(const Key &key) {
             cur = cur->right;
         }
     }
-    return {first, Iterator(upper)};
+    return {first, Iterator(upper, this)};
 }
 
 std::pair<BinarySearchTree::ConstIterator, BinarySearchTree::ConstIterator>
@@ -536,7 +570,7 @@ BinarySearchTree::equalRange(const Key &key) const {
             cur = cur->right;
         }
     }
-    return {first, ConstIterator(upper)};
+    return {first, ConstIterator(upper, this)};
 }
 
 // ============================================================
@@ -544,11 +578,11 @@ BinarySearchTree::equalRange(const Key &key) const {
 // ============================================================
 
 BinarySearchTree::ConstIterator BinarySearchTree::min() const {
-    return ConstIterator(treeMin(_root));
+    return ConstIterator(treeMin(_root), this);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::max() const {
-    return ConstIterator(treeMax(_root));
+    return ConstIterator(treeMax(_root), this);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::min(const Key &key) const {
@@ -568,14 +602,15 @@ BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
             cur = cur->right;
         }
     }
-    return ConstIterator(result);
+    return ConstIterator(result, this);
 }
 
 // ============================================================
 // Tree: Iterators
 // ============================================================
 
-BinarySearchTree::Iterator::Iterator(Node *node) : _node(node) {}
+BinarySearchTree::Iterator::Iterator(Node *node, const BinarySearchTree *tree)
+    : _node(node), _tree(tree) {}
 
 std::pair<Key, Value> &BinarySearchTree::Iterator::operator*() {
     return _node->keyValuePair;
@@ -615,7 +650,10 @@ BinarySearchTree::Iterator BinarySearchTree::Iterator::operator++(int) {
 }
 
 BinarySearchTree::Iterator BinarySearchTree::Iterator::operator--() {
-    if (_node == nullptr) return *this;
+    if (_node == nullptr) {
+        _node = treeMax(_tree->_root);
+        return *this;
+    }
     if (_node->left != nullptr) {
         _node = treeMax(_node->left);
     } else {
@@ -645,7 +683,8 @@ bool BinarySearchTree::Iterator::operator!=(const Iterator &other) const {
 
 // --- ConstIterator ---
 
-BinarySearchTree::ConstIterator::ConstIterator(const Node *node) : _node(node) {}
+BinarySearchTree::ConstIterator::ConstIterator(const Node *node, const BinarySearchTree *tree)
+    : _node(node), _tree(tree) {}
 
 const std::pair<Key, Value> &BinarySearchTree::ConstIterator::operator*() const {
     return _node->keyValuePair;
@@ -677,7 +716,10 @@ BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator++(int)
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::ConstIterator::operator--() {
-    if (_node == nullptr) return *this;
+    if (_node == nullptr) {
+        _node = treeMax(_tree->_root);
+        return *this;
+    }
     if (_node->left != nullptr) {
         _node = treeMax(_node->left);
     } else {
@@ -710,19 +752,19 @@ bool BinarySearchTree::ConstIterator::operator!=(const ConstIterator &other) con
 // ============================================================
 
 BinarySearchTree::Iterator BinarySearchTree::begin() {
-    return Iterator(treeMin(_root));
+    return Iterator(treeMin(_root), this);
 }
 
 BinarySearchTree::Iterator BinarySearchTree::end() {
-    return Iterator(nullptr);
+    return Iterator(nullptr, this);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::cbegin() const {
-    return ConstIterator(treeMin(_root));
+    return ConstIterator(treeMin(_root), this);
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::cend() const {
-    return ConstIterator(nullptr);
+    return ConstIterator(nullptr, this);
 }
 
 // ============================================================
