@@ -3,6 +3,6 @@ project(rbt)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(rbt main.cpp)
+add_executable(rbt RBTree.cpp)
 
 target_link_libraries(rbt PRIVATE ${CMAKE_SOURCE_DIR}/libRBTreeTest.a)
