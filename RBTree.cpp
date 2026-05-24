@@ -597,24 +597,31 @@ BinarySearchTree::ConstIterator BinarySearchTree::max() const {
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::min(const Key &key) const {
-    return find(key);
+    auto range = equalRange(key);
+    if (range.first == range.second) return range.first;
+    ConstIterator result = range.first;
+    ++range.first;
+    while (range.first != range.second) {
+        if ((*range.first).second < (*result).second) {
+            result = range.first;
+        }
+        ++range.first;
+    }
+    return result;
 }
 
 BinarySearchTree::ConstIterator BinarySearchTree::max(const Key &key) const {
-    g_currentInstance = const_cast<BinarySearchTree *>(this);
-    const Node *cur = _root;
-    const Node *result = nullptr;
-    while (cur != nullptr) {
-        if (key < cur->keyValuePair.first) {
-            cur = cur->left;
-        } else if (key > cur->keyValuePair.first) {
-            cur = cur->right;
-        } else {
-            result = cur;
-            cur = cur->right;
+    auto range = equalRange(key);
+    if (range.first == range.second) return range.first;
+    ConstIterator result = range.first;
+    ++range.first;
+    while (range.first != range.second) {
+        if ((*range.first).second > (*result).second) {
+            result = range.first;
         }
+        ++range.first;
     }
-    return ConstIterator(result);
+    return result;
 }
 
 // ============================================================
